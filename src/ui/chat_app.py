@@ -7,6 +7,7 @@ Open:  http://localhost:5001
 """
 
 import os
+import sys
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +15,7 @@ from flask import Flask, request, jsonify, Response, stream_with_context
 
 app = Flask(__name__)
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO))
 
 SYSTEM_PROMPT = """You are Adamus — the persistent AI CTO for Genre, built by Augustus.
 
@@ -22,10 +24,21 @@ You know the full Adamus codebase (108+ architecture docs).
 Help Augustus build Genre from $0 → $10K MRR.
 
 Current state: 198 tests passing. Days 1-5 complete.
-Memory, Security, War Room, Business AI, CAMBI AI all operational."""
+Memory, Security, War Room, Business AI, CAMBI AI all operational.
+Multi-brain system active: routes to Claude, Ollama, LM Studio, DeepSeek."""
+
+# ── Brain orchestrator (singleton) ────────────────────────────────────────────
+_orchestrator = None
+
+def get_orchestrator():
+    global _orchestrator
+    if _orchestrator is None:
+        from src.coordinator.brain_orchestrator import BrainOrchestrator
+        _orchestrator = BrainOrchestrator()
+    return _orchestrator
 
 
-# ── Backend helpers ───────────────────────────────────────────────────────────
+# ── Status ────────────────────────────────────────────────────────────────────
 
 def get_status():
     try:
@@ -41,12 +54,17 @@ def get_status():
         commit, dirty = "unknown", ""
 
     try:
-        import sys; sys.path.insert(0, str(REPO))
         from src.memory.adamus_persistent_memory import AdamusPersistentMemory
         s = AdamusPersistentMemory().get_stats()
         memories, mem_mb = s["total_memories"], s["total_size_mb"]
     except Exception:
         memories, mem_mb = 0, 0
+
+    try:
+        brain_status = get_orchestrator().get_status()
+        available = [v["name"] for v in brain_status.values() if v["available"]]
+    except Exception:
+        available = []
 
     return {
         "commit": commit,
@@ -55,52 +73,53 @@ def get_status():
         "mem_mb": mem_mb,
         "time": datetime.now().strftime("%H:%M"),
         "tests": 198,
+        "brains": brain_status if 'brain_status' in dir() else {},
+        "available_brains": available,
     }
 
 
-def stream_response(messages):
-    """Stream from Claude API or demo mode."""
-    # Load .env
-    env_file = REPO / ".env"
-    if env_file.exists():
-        for line in env_file.read_text().splitlines():
-            if "=" in line and not line.startswith("#"):
-                k, _, v = line.partition("=")
-                os.environ.setdefault(k.strip(), v.strip())
+# ── Streaming ─────────────────────────────────────────────────────────────────
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if api_key and not api_key.startswith("sk-ant-your"):
-        try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=api_key)
-            with client.messages.stream(
-                model="claude-sonnet-4-6",
-                max_tokens=1024,
-                system=SYSTEM_PROMPT,
-                messages=messages,
-            ) as stream:
-                for text in stream.text_stream:
-                    yield text
-            return
-        except Exception as e:
-            yield f"⚠️ API error: {e}\n\nRunning in demo mode."
-            return
+def stream_response(messages, force_brain=None):
+    """Route to best brain and stream response."""
+    try:
+        orch = get_orchestrator()
+        from src.coordinator.brain_orchestrator import TaskType, Brain
 
-    # Demo mode
+        force = Brain(force_brain) if force_brain else None
+
+        yield from orch.stream(
+            messages=messages,
+            system=SYSTEM_PROMPT,
+            task_type=TaskType.CHAT,
+            data_level=1,
+            force=force,
+        )
+    except RuntimeError as e:
+        # No brains available — fallback to demo
+        yield from _demo_response(messages, str(e))
+    except Exception as e:
+        yield f"⚠️ Orchestrator error: {e}\n\n"
+        yield from _demo_response(messages, "")
+
+
+def _demo_response(messages, error_hint=""):
+    """Smart demo responses when no brains are available."""
     last = messages[-1]["content"].lower() if messages else ""
     if any(w in last for w in ["status", "health", "how are"]):
-        reply = "**System Status ✓**\n\n- 198 tests passing\n- Git: clean, pushed\n- Memory: operational\n- Days 1-5 complete\n\nWhat do you want to build next?"
+        reply = "**System Status ✓**\n\n- 198 tests passing\n- Git: clean, pushed to GitHub\n- Memory: operational\n- Days 1-5 complete\n- Multi-brain orchestrator: active\n\nWhat do you want to build?"
+    elif any(w in last for w in ["brain", "model", "which ai", "ollama", "claude"]):
+        reply = "**Multi-Brain System**\n\n| Brain | Status | Use case |\n|---|---|---|\n| Claude | needs API key | Complex coding |\n| Ollama | needs `ollama serve` | Local/private |\n| LM Studio | needs app running | Local/private |\n| DeepSeek | needs API key | Cost-effective |\n\nAll route through the orchestrator. Add keys to `.env` or start a local brain."
     elif any(w in last for w in ["day 6", "tech ai"]):
-        reply = "**Day 6: Tech AI**\n\nBuilds:\n```\nsrc/tech_ai/\n├── adamus_core.py\n├── self_improvement.py\n├── capability_builder.py\n└── genre_builder.py\n```\n\nReady to start?"
+        reply = "**Day 6: Tech AI**\n\n```\nsrc/tech_ai/\n├── adamus_core.py\n├── self_improvement.py\n├── capability_builder.py\n└── genre_builder.py\n```\n\nReady to build?"
     elif any(w in last for w in ["mrr", "revenue", "money"]):
-        reply = "**Business**\n\n- Current MRR: $0\n- Target: $10K in 90 days\n- North star: MRR\n\nGenre is an AI writing/knowledge tool for creators."
+        reply = "**Business**\n\n- MRR: $0 → $10K target\n- Genre: AI writing tool for creators\n- North star: MRR"
     elif any(w in last for w in ["hello", "hi", "hey", "who"]):
-        reply = "Hey Augustus 👋\n\nI'm **Adamus** — your AI CTO.\n\n198 tests passing. What do you want to build?"
-    elif any(w in last for w in ["memory", "remember"]):
-        reply = "**Memory System**\n\n- SQLite DB: `~/.adamus/memory.db`\n- File store: `~/.adamus/memories/YYYY-MM/`\n- TB+ capable, progressive disclosure\n- Auto-archives after 30/90 days\n\n> Add `ANTHROPIC_API_KEY` to `.env` for full AI."
+        reply = "Hey Augustus 👋\n\nI'm **Adamus** — your persistent AI CTO.\n\n198 tests passing. Multi-brain system active. What do you want to build?"
     else:
-        reply = f"I heard: *\"{messages[-1]['content']}\"*\n\nI can help with code, business strategy, memory, and planning.\n\n> ⚠️ Demo mode — add `ANTHROPIC_API_KEY` to `/home/johan/adamus/.env` for real AI."
-
+        hint = f"\n\n> No brain available: {error_hint}" if error_hint else \
+               "\n\n> ⚠️ Demo mode. Add `ANTHROPIC_API_KEY` to `.env` or start Ollama/LM Studio."
+        reply = f"You said: *\"{messages[-1]['content'] if messages else ''}\"*\n\nI can help with code, architecture, business strategy, memory, and planning.{hint}"
     yield reply
 
 
@@ -116,8 +135,17 @@ def api_status():
 
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
-    msgs = request.get_json(force=True).get("messages", [])
-    return Response(stream_with_context(stream_response(msgs)), mimetype="text/plain")
+    data = request.get_json(force=True)
+    msgs = data.get("messages", [])
+    force = data.get("force_brain")  # optional: "claude", "ollama", etc.
+    return Response(stream_with_context(stream_response(msgs, force)), mimetype="text/plain")
+
+@app.route("/api/brains")
+def api_brains():
+    try:
+        return jsonify(get_orchestrator().get_status())
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 # ── HTML (single-file, no CDN) ────────────────────────────────────────────────
@@ -285,6 +313,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     <div class="si"><span class="lbl"><span class="dot do"></span>Memory</span><span class="val" id="s-mem">loading…</span></div>
     <div class="si"><span class="lbl"><span class="dot dg"></span>MRR Goal</span><span class="val">$10K/90d</span></div>
   </div>
+  <div class="stat-sec">
+    <div class="sec-lbl">Brains</div>
+    <div id="brain-list">
+      <div class="si"><span class="lbl"><span class="dot" style="background:#555"></span>Detecting…</span></div>
+    </div>
+  </div>
   <button class="new-btn" onclick="newChat()">+ New Chat</button>
   <div class="hist" id="hist"><div class="sec-lbl">History</div></div>
 </aside>
@@ -292,7 +326,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <main class="main">
   <header class="ch">
     <h2 id="title">Adamus Chat</h2>
-    <div class="mb"><span></span>claude-sonnet-4-6</div>
+    <div class="mb"><span></span><span id="active-brain">detecting…</span></div>
   </header>
   <div class="msgs" id="msgs">
     <div class="welcome" id="welcome">
@@ -362,10 +396,33 @@ fetch('/api/status')
     document.getElementById('s-git').textContent = d.clean ? 'clean ✓' : 'uncommitted';
     document.getElementById('s-gitdot').className = 'dot '+(d.clean?'dg':'do');
     document.getElementById('s-mem').textContent = d.memories+' memories';
+    if(d.available_brains && d.available_brains.length)
+      document.getElementById('active-brain').textContent = d.available_brains[0];
+    else
+      document.getElementById('active-brain').textContent = 'demo mode';
   })
   .catch(()=>{
     document.getElementById('s-git').textContent = 'offline';
     document.getElementById('s-mem').textContent = '—';
+  });
+
+// ── Brains ────────────────────────────────────────────────────────────────
+fetch('/api/brains')
+  .then(r=>r.json())
+  .then(brains=>{
+    const el=document.getElementById('brain-list');
+    el.innerHTML='';
+    Object.values(brains).forEach(b=>{
+      const on=b.available;
+      const d=document.createElement('div');d.className='si';
+      d.innerHTML=`<span class="lbl"><span class="dot ${on?'dg':'dr'}"></span>${b.name}</span>`+
+        `<span class="val" style="font-size:10px;color:${on?'#4CAF50':'#555'}">${on?b.model:'offline'}</span>`;
+      el.appendChild(d);
+    });
+  })
+  .catch(()=>{
+    document.getElementById('brain-list').innerHTML=
+      '<div class="si"><span class="lbl" style="color:#555">Could not load</span></div>';
   });
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -439,11 +496,21 @@ async function send(){
     const reader=r.body.getReader();
     const dec=new TextDecoder();
     let full='';
+    let brainSet=false;
 
     while(true){
       const{done,value}=await reader.read();
       if(done)break;
-      full+=dec.decode(value,{stream:true});
+      let chunk=dec.decode(value,{stream:true});
+      // Extract brain header if present
+      if(!brainSet && chunk.startsWith('__brain__')){
+        const nl=chunk.indexOf('\n');
+        const brainName=chunk.slice(9,nl>-1?nl:undefined).trim();
+        document.getElementById('active-brain').textContent=brainName;
+        chunk=nl>-1?chunk.slice(nl+1):'';
+        brainSet=true;
+      }
+      full+=chunk;
       bub.innerHTML=md(full);
       scrollBot();
     }
