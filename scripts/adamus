@@ -1,0 +1,5 @@
+#!/bin/bash
+# Adamus CLI launcher — activates venv and runs the interface
+cd /home/johan/adamus
+source .venv/bin/activate
+python -m src.ui.adamus_interface "$@"
