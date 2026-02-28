@@ -294,8 +294,14 @@ class BrainOrchestrator:
             if Brain.CLAUDE in self._available:
                 return Brain.CLAUDE, "Complex task → Claude (best reasoning)"
 
-        # Preferred order for general chat
-        preference = [Brain.CLAUDE, Brain.DEEPSEEK, Brain.LMSTUDIO, Brain.OLLAMA, Brain.OPENAI]
+        # Preferred order: free first → power → cost-effective → fallback
+        preference = [
+            Brain.OPENCODE, Brain.GROQ, Brain.GEMINI,   # free tiers first
+            Brain.CLAUDE, Brain.GROK,                    # power
+            Brain.MISTRAL, Brain.DEEPSEEK,               # cost-effective
+            Brain.OPENAI,                                 # paid fallback
+            Brain.LMSTUDIO, Brain.OLLAMA,                # local last for general
+        ]
         for brain in preference:
             if brain in self._available:
                 return brain, f"Best available: {BRAIN_CONFIGS[brain].name}"
