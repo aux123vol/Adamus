@@ -74,7 +74,7 @@ class TestPPAIGateway:
         result = gateway.process("How do I write a Python function?")
 
         assert result.allowed
-        assert result.route == RouteDecision.CLAUDE
+        assert result.route == RouteDecision.EXTERNAL
 
     def test_gateway_blocks_secret_data(self):
         """Test gateway blocks secret data."""
@@ -96,7 +96,7 @@ class TestPPAIGateway:
         result = gateway.process("User email: john@example.com needs help")
 
         assert result.allowed
-        assert result.route == RouteDecision.OLLAMA
+        assert result.route == RouteDecision.LOCAL
 
     def test_sanitization_removes_pii(self):
         """Test sanitization removes PII."""
