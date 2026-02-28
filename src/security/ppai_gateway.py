@@ -126,10 +126,10 @@ class PPAIGateway:
             )
         elif classification.level == DataLevel.CONFIDENTIAL:
             # Level 3: Local only
-            route = RouteDecision.OLLAMA
+            route = RouteDecision.LOCAL
         else:
-            # Level 1-2: Can use Claude after sanitization
-            route = RouteDecision.CLAUDE
+            # Level 1-2: External AI allowed after sanitization
+            route = RouteDecision.EXTERNAL
 
         # 3. Sanitize if needed
         sanitized_prompt = prompt
