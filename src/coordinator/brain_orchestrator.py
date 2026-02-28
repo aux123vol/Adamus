@@ -166,6 +166,11 @@ class BrainOrchestrator:
 
     def _probe(self, brain: Brain, cfg: BrainConfig) -> bool:
         """Check if a brain is reachable."""
+        # OpenCode — check CLI is installed
+        if brain == Brain.OPENCODE:
+            import shutil
+            return shutil.which("opencode") is not None
+
         # API-key-gated brains
         if cfg.api_key_env:
             key = os.environ.get(cfg.api_key_env, "")
