@@ -148,6 +148,11 @@ class ModelRouter:
         Returns:
             (selected_brain, reason)
         """
+        # OpenCode first — free hosted models, no API key needed
+        if data_level <= 2 and not force_brain and not self.prefer_local:
+            if self._opencode_available:
+                return Brain.OPENCODE, "OpenCode first (free open-source models)"
+
         # Security override: Level 3-4 MUST use local
         if data_level >= 3:
             if not self._ollama_available:
