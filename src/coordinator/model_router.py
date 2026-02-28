@@ -156,8 +156,15 @@ class ModelRouter:
         self.budget_remaining = budget_remaining
         self.prefer_local = prefer_local
         self._opencode_available = self._check_opencode()
+        self._groq_available = self._check_api_key("GROQ_API_KEY", "Groq")
+        self._gemini_available = self._check_api_key("GEMINI_API_KEY", "Gemini")
         self._claude_available = self._check_claude()
+        self._grok_available = self._check_api_key("GROK_API_KEY", "Grok")
+        self._mistral_available = self._check_api_key("MISTRAL_API_KEY", "Mistral")
+        self._deepseek_available = self._check_api_key("DEEPSEEK_API_KEY", "DeepSeek")
+        self._openai_available = self._check_api_key("OPENAI_API_KEY", "OpenAI")
         self._ollama_available = self._check_ollama()
+        self._lmstudio_available = self._check_lmstudio()
 
     def _check_opencode(self) -> bool:
         """Check if opencode CLI is installed."""
