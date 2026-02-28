@@ -299,6 +299,9 @@ class PPAIGateway:
         ip_pattern = r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'
         sanitized = re.sub(ip_pattern, '[IP_REDACTED]', sanitized)
 
+        # Step 3: anonymize identifiers
+        sanitized = self.anonymize_identifiers(sanitized)
+
         return SanitizationResult(
             original_length=original_length,
             sanitized_length=len(sanitized),
@@ -308,6 +311,47 @@ class PPAIGateway:
             secrets_found=secrets_found
         )
 
+    def anonymize_identifiers(self, text: str) -> str:
+        """
+        Anonymize business-specific identifiers before sending to external AI.
+
+        Replaces product names, internal system names, and personal references
+        with generic placeholders so external AI never learns Adamus's internals.
+        """
+        replacements = [
+            (r'\bGenre\b',    '[PRODUCT]'),
+            (r'\bAdamus\b',   '[SYSTEM]'),
+            (r'\bAugustus\b', '[USER]'),
+            # Internal DB / file paths
+            (r'~/\.adamus/[^\s]*', '[INTERNAL_PATH]'),
+            (r'/home/[a-zA-Z0-9_]+/', '[HOME_PATH]/'),
+            # Internal port references
+            (r'\blocalhost:\d{4,5}\b', 'localhost:[PORT]'),
+        ]
+        for pattern, replacement in replacements:
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+        return text
+
+    def before_send(self, prompt: str) -> str:
+        """
+        Full pre-send pipeline as specified in PPAI_ARCHITECTURE_SUMMARY.md.
+
+        Call this before sending any prompt to an external AI.
+        Returns sanitized prompt, or raises SecurityError if too sensitive.
+        """
+        # Classify ORIGINAL prompt first (catches secrets before sanitization hides them)
+        result = self.process(prompt)
+
+        if not result.allowed:
+            raise SecurityError("PPAI blocked: prompt contains Level 4 SECRET data")
+
+        if result.route == RouteDecision.LOCAL:
+            raise SecurityError(
+                "PPAI requires local routing — use Ollama/LM Studio for this data"
+            )
+
+        return result.sanitized_prompt or prompt
+
     def _log_audit(
         self,
         audit_id: str,
@@ -315,17 +359,25 @@ class PPAIGateway:
         route: RouteDecision,
         warnings: list
     ) -> None:
-        """Log to audit trail."""
-        if self.memory_db:
-            # Would log to database
-            pass
-
+        """Log to audit trail — writes to DB if available, always logs."""
         logger.info(
             f"[PPAI AUDIT] {audit_id}: "
             f"Level={classification.level.name}, "
             f"Route={route.value}, "
             f"Warnings={len(warnings)}"
         )
+
+        if self.memory_db:
+            try:
+                PPAIAuditLog(self.memory_db).log_call(
+                    audit_id=audit_id,
+                    data_level=classification.level.value,
+                    route=route.value,
+                    pii_detected=len(classification.detected_patterns),
+                    warnings=warnings,
+                )
+            except Exception as exc:
+                logger.warning(f"PPAI audit DB write failed: {exc}")
 
     def validate_before_send(
         self,
@@ -378,3 +430,79 @@ class PPAIGateway:
             "total_requests": self._audit_counter,
             "status": "active"
         }
+
+
+class SecurityError(Exception):
+    """Raised when PPAI blocks a request."""
+    pass
+
+
+class PPAIAuditLog:
+    """
+    Audit trail for all AI calls — as specified in PPAI_ARCHITECTURE_SPEC.md §4.
+
+    Logs every call to SQLite so Augustus can review what data
+    was sent to which provider.
+    """
+
+    TABLE_SQL = """
+        CREATE TABLE IF NOT EXISTS ppai_audit (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp   TEXT    NOT NULL,
+            audit_id    TEXT    NOT NULL,
+            data_level  INTEGER NOT NULL,
+            route       TEXT    NOT NULL,
+            pii_detected INTEGER DEFAULT 0,
+            sanitization_applied INTEGER DEFAULT 1,
+            routed_to_local INTEGER DEFAULT 0,
+            warnings    TEXT    DEFAULT '',
+            tokens_sent INTEGER DEFAULT 0
+        )
+    """
+
+    def __init__(self, memory_db):
+        self.db = memory_db
+        self._ensure_table()
+
+    def _ensure_table(self) -> None:
+        try:
+            conn = self.db._get_connection() if hasattr(self.db, '_get_connection') else None
+            if conn:
+                conn.execute(self.TABLE_SQL)
+                conn.commit()
+        except Exception as exc:
+            logger.debug(f"PPAIAuditLog table setup: {exc}")
+
+    def log_call(
+        self,
+        audit_id: str,
+        data_level: int,
+        route: str,
+        pii_detected: int = 0,
+        warnings: list = None,
+        tokens_sent: int = 0,
+    ) -> None:
+        """Log every AI call to the audit DB."""
+        try:
+            conn = self.db._get_connection() if hasattr(self.db, '_get_connection') else None
+            if conn:
+                conn.execute(
+                    """INSERT INTO ppai_audit
+                       (timestamp, audit_id, data_level, route, pii_detected,
+                        sanitization_applied, routed_to_local, warnings, tokens_sent)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        datetime.now().isoformat(),
+                        audit_id,
+                        data_level,
+                        route,
+                        pii_detected,
+                        1,
+                        1 if route == "local" else 0,
+                        "; ".join(warnings or []),
+                        tokens_sent,
+                    )
+                )
+                conn.commit()
+        except Exception as exc:
+            logger.warning(f"PPAIAuditLog write failed: {exc}")

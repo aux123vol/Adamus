@@ -125,6 +125,36 @@ class TestPPAIGateway:
         assert "[REDACTED]" in result.sanitized_content
         assert "mysecret123" not in result.sanitized_content
 
+    def test_anonymize_identifiers_replaces_product_names(self):
+        """Spec §2: sanitize() pipeline includes anonymize_identifiers."""
+        from src.security.ppai_gateway import PPAIGateway
+        gateway = PPAIGateway()
+        result = gateway.sanitize("Genre app built by Augustus using Adamus system")
+        assert "Genre" not in result.sanitized_content
+        assert "Augustus" not in result.sanitized_content
+        assert "Adamus" not in result.sanitized_content
+        assert "[PRODUCT]" in result.sanitized_content
+
+    def test_before_send_clean_prompt_returns_sanitized(self):
+        """Spec summary: before_send() returns sanitized prompt for clean input."""
+        from src.security.ppai_gateway import PPAIGateway
+        gateway = PPAIGateway()
+        result = gateway.before_send("How do I sort a Python list?")
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_before_send_raises_on_secret(self):
+        """Spec summary: before_send() raises SecurityError for Level-4 data."""
+        from src.security.ppai_gateway import PPAIGateway, SecurityError
+        gateway = PPAIGateway()
+        with pytest.raises(SecurityError):
+            gateway.before_send("My key is sk-ant-api03-FAKEKEYHERE")
+
+    def test_ppai_audit_log_class_exists(self):
+        """Spec §4: PPAIAuditLog class must exist with log_call method."""
+        from src.security.ppai_gateway import PPAIAuditLog
+        assert hasattr(PPAIAuditLog, 'log_call')
+
     def test_validate_before_send_blocks_secret_from_external(self):
         """PPAI last-line-of-defense: Anthropic key must not reach any external brain."""
         from src.security.ppai_gateway import PPAIGateway
