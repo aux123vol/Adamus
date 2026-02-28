@@ -1,5 +1,84 @@
-#!/bin/bash
-# Adamus CLI launcher — activates venv and runs the interface
-cd /home/johan/adamus
-source .venv/bin/activate
-python -m src.ui.adamus_interface "$@"
+#!/usr/bin/env bash
+# Adamus CLI — accessible from anywhere
+ADAMUS_DIR="/home/johan/adamus"
+VENV="/home/johan/adamus/.venv"
+
+if [ -f "$VENV/bin/python" ]; then
+    PYTHON="$VENV/bin/python"
+else
+    PYTHON=python3
+fi
+
+cd "$ADAMUS_DIR"
+
+case "${1:-}" in
+    start)      $PYTHON -m src.main ;;
+    ui)         $PYTHON -m src.main --ui ;;
+    cli)        $PYTHON -m src.main --cli ;;
+    chat)       $PYTHON src/ui/unified_app.py ;;
+    status)     $PYTHON -c "
+import sys, os
+sys.path.insert(0, '$ADAMUS_DIR')
+from src.coordinator.brain_orchestrator import BrainOrchestrator
+import json, subprocess
+b = BrainOrchestrator()
+s = b.get_status()
+print('=== Adamus Status ===')
+for name, info in s.items():
+    avail = '✅' if info['available'] else '❌'
+    print(f'  {avail} {info[\"name\"]:12} {info[\"model\"]}')
+try:
+    r = subprocess.run(['git','log','-1','--oneline'], capture_output=True, text=True, cwd='$ADAMUS_DIR')
+    print(f'  Git: {r.stdout.strip()}')
+except: pass
+"   ;;
+    test)       cd "$ADAMUS_DIR" && pytest tests/ -v --tb=short ;;
+    logs)       tail -f "$ADAMUS_DIR/logs/adamus.log" 2>/dev/null || echo "No logs yet" ;;
+    loop-logs)  tail -f "$HOME/.adamus/loop.log" 2>/dev/null || echo "No loop logs yet" ;;
+    service)
+        case "${2:-}" in
+            start)   systemctl --user start adamus ;;
+            stop)    systemctl --user stop adamus ;;
+            restart) systemctl --user restart adamus ;;
+            status)  systemctl --user status adamus ;;
+            *)       echo "Usage: adamus service [start|stop|restart|status]" ;;
+        esac ;;
+    help|--help|-h)
+        echo "Adamus CLI — AI CTO Orchestrator"
+        echo ""
+        echo "Usage: adamus <command>"
+        echo ""
+        echo "Commands:"
+        echo "  start        Start full Adamus stack (UI + coordinator + loop)"
+        echo "  ui           Start web UI only (http://localhost:8888)"
+        echo "  cli          Start CLI interactive mode"
+        echo "  chat         Start chat UI only"
+        echo "  status       Show brain/system status"
+        echo "  test         Run test suite"
+        echo "  logs         Tail main logs"
+        echo "  loop-logs    Tail autonomous loop logs"
+        echo "  service      Manage systemd service [start|stop|restart|status]"
+        echo ""
+        echo "Web UI: http://localhost:8888"
+        ;;
+    *)
+        # Pass all args as a task to Adamus
+        if [ -n "${1:-}" ]; then
+            $PYTHON -c "
+import sys, asyncio
+sys.path.insert(0, '$ADAMUS_DIR')
+from dotenv import load_dotenv
+load_dotenv('$ADAMUS_DIR/.env')
+from src.coordinator.ai_coordinator import AICoordinator
+async def run():
+    c = AICoordinator()
+    await c.initialize()
+    r = await c.execute_task(' '.join(sys.argv[1:]))
+    print(r.result)
+asyncio.run(run())
+" "$@"
+        else
+            adamus help
+        fi
+        ;;
+esac

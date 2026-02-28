@@ -353,29 +353,52 @@ class AICoordinator:
         task_id: str
     ) -> Dict[str, Any]:
         """
-        Execute prompt with selected brain.
+        Execute prompt with selected brain via BrainOrchestrator.
 
-        This is a placeholder - actual implementation would:
-        - Claude: Call Anthropic API
-        - Ollama: Call local Ollama API
+        Collects all streamed chunks into a single response.
         """
-        # Placeholder response
-        # In production, this would make actual API calls
+        from .brain_orchestrator import BrainOrchestrator, TaskType
+        from .brain_orchestrator import Brain as OrcBrain
 
-        if brain == Brain.CLAUDE:
-            # Would call: anthropic.messages.create(...)
+        orchestrator = BrainOrchestrator()
+
+        # Map Brain enum to OrcBrain enum
+        brain_map = {
+            Brain.CLAUDE: OrcBrain.CLAUDE,
+            Brain.OLLAMA: OrcBrain.OLLAMA,
+        }
+        force_brain = brain_map.get(brain)
+
+        messages = [{"role": "user", "content": prompt}]
+        system = (
+            "You are Adamus, an AI CTO. Execute the task precisely. "
+            "Be direct and thorough. Return complete, actionable output."
+        )
+
+        chunks = []
+        try:
+            for chunk in orchestrator.stream(
+                messages=messages,
+                system=system,
+                task_type=TaskType.CODING,
+                data_level=1,
+                force=force_brain,
+            ):
+                if not chunk.startswith("__brain__"):
+                    chunks.append(chunk)
+        except Exception as e:
+            logger.error(f"[{task_id}] Brain execution error: {e}")
             return {
-                "content": f"[Placeholder: Claude would process task {task_id}]",
-                "tokens": len(prompt) // 4,
-                "cost": (len(prompt) // 4000) * 0.009
+                "content": f"Brain execution failed: {e}",
+                "tokens": 0,
+                "cost": 0.0,
             }
-        else:
-            # Would call: ollama.generate(...)
-            return {
-                "content": f"[Placeholder: Ollama would process task {task_id}]",
-                "tokens": len(prompt) // 4,
-                "cost": 0.0  # Ollama is free
-            }
+
+        content = "".join(chunks)
+        tokens = len(content) // 4
+        cost = (tokens / 1000) * (0.009 if brain == Brain.CLAUDE else 0.0)
+
+        return {"content": content, "tokens": tokens, "cost": cost}
 
     def _classify_task_type(self, description: str) -> str:
         """Classify task type for brain selection."""
