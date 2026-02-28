@@ -37,10 +37,14 @@ logger = logging.getLogger(__name__)
 class Brain(Enum):
     OPENCODE  = "opencode"   # Free hosted models — default first
     CLAUDE    = "claude"     # Best reasoning — power fallback
-    OLLAMA    = "ollama"
-    LMSTUDIO  = "lmstudio"
-    DEEPSEEK  = "deepseek"
-    OPENAI    = "openai"
+    GROQ      = "groq"       # Fast + free tier (Llama on Groq hardware)
+    GEMINI    = "gemini"     # Google Gemini — free tier available
+    GROK      = "grok"       # xAI Grok
+    MISTRAL   = "mistral"    # Mistral AI — cost-effective
+    DEEPSEEK  = "deepseek"   # DeepSeek — very cheap
+    OPENAI    = "openai"     # OpenAI GPT-4o
+    OLLAMA    = "ollama"     # Local — all data levels
+    LMSTUDIO  = "lmstudio"   # Local OpenAI-compat — all data levels
 
 
 class TaskType(Enum):
