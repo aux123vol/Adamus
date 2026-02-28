@@ -259,43 +259,36 @@ class ModelRouter:
         if self.prefer_local and self._ollama_available:
             return Brain.OLLAMA, "Prefer local mode enabled"
 
-        # Budget check for Claude
+        # Budget exhausted → free brains only
         estimated_cost = (estimated_tokens / 1000) * self.BRAINS[Brain.CLAUDE].cost_per_1k_tokens
         if estimated_cost > self.budget_remaining:
-            if self._ollama_available:
-                return Brain.OLLAMA, "Budget constraint - using free local model"
+            for brain, flag in [
+                (Brain.GROQ, self._groq_available),
+                (Brain.GEMINI, self._gemini_available),
+                (Brain.OLLAMA, self._ollama_available),
+                (Brain.LMSTUDIO, self._lmstudio_available),
+            ]:
+                if flag:
+                    return brain, "Budget constraint - using free brain"
             raise BudgetError(
-                f"Insufficient budget: need ${estimated_cost:.2f}, "
-                f"have ${self.budget_remaining:.2f}"
+                f"Insufficient budget (${self.budget_remaining:.2f}) and no free brain available"
             )
 
-        # Task-based selection
-        claude_caps = self.BRAINS[Brain.CLAUDE]
-        ollama_caps = self.BRAINS[Brain.OLLAMA]
-
-        # Complex tasks prefer Claude
-        complex_tasks = ["coding", "architecture", "debugging", "complex_reasoning"]
-        if task_type.lower() in complex_tasks:
-            if self._claude_available:
-                return Brain.CLAUDE, f"Complex task ({task_type}) - using Claude"
-            elif self._ollama_available:
-                return Brain.OLLAMA, f"Claude unavailable, falling back to Ollama"
-            raise NoAvailableBrainError("No AI brain available")
-
-        # Simple tasks can use either
-        simple_tasks = ["summarization", "simple_tasks", "background_work"]
-        if task_type.lower() in simple_tasks:
-            if self._ollama_available:
-                return Brain.OLLAMA, f"Simple task ({task_type}) - using free local model"
-            if self._claude_available:
-                return Brain.CLAUDE, f"Ollama unavailable, using Claude"
-            raise NoAvailableBrainError("No AI brain available")
-
-        # Default: Use Claude if available and budget allows
-        if self._claude_available:
-            return Brain.CLAUDE, "Default selection - using Claude"
-        if self._ollama_available:
-            return Brain.OLLAMA, "Default selection - Claude unavailable, using Ollama"
+        # Ordered preference: free → power → cost-effective → fallback → local
+        preference = [
+            (Brain.GROQ,     self._groq_available),
+            (Brain.GEMINI,   self._gemini_available),
+            (Brain.CLAUDE,   self._claude_available),
+            (Brain.GROK,     self._grok_available),
+            (Brain.MISTRAL,  self._mistral_available),
+            (Brain.DEEPSEEK, self._deepseek_available),
+            (Brain.OPENAI,   self._openai_available),
+            (Brain.OLLAMA,   self._ollama_available),
+            (Brain.LMSTUDIO, self._lmstudio_available),
+        ]
+        for brain, available in preference:
+            if available:
+                return brain, f"Best available: {self.BRAINS[brain].name}"
 
         raise NoAvailableBrainError("No AI brain available")
 
