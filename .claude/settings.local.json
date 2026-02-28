@@ -23,7 +23,8 @@
       "Bash(ls:*)",
       "Bash(python:*)",
       "mcp__mcp-search__search",
-      "mcp__mcp-search__get_observations"
+      "mcp__mcp-search__get_observations",
+      "Bash(opencode:*also build the ppai for the api and make sure its works and secure look in docs for complete layout and why it being built and the intention and functionality)"
     ]
   },
   "enableAllProjectMcpServers": true,
