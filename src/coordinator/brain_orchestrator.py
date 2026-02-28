@@ -66,6 +66,16 @@ class BrainConfig:
 
 
 BRAIN_CONFIGS: Dict[Brain, BrainConfig] = {
+    Brain.OPENCODE: BrainConfig(
+        name="OpenCode",
+        is_local=False,
+        max_data_level=2,
+        base_url="",  # CLI subprocess — no HTTP endpoint
+        api_key_env="",  # No key needed for free models
+        default_model="opencode/trinity-large-preview-free",
+        cost_per_1k=0.0,
+        strengths=["coding", "general", "free", "open_source"],
+    ),
     Brain.CLAUDE: BrainConfig(
         name="Claude",
         is_local=False,
