@@ -285,7 +285,9 @@ class BrainOrchestrator:
         # Tell the caller which brain we're using
         yield f"__brain__{cfg.name}\n"
 
-        if brain == Brain.CLAUDE:
+        if brain == Brain.OPENCODE:
+            yield from self._stream_opencode(messages, system, cfg)
+        elif brain == Brain.CLAUDE:
             yield from self._stream_claude(messages, system, cfg)
         elif brain in (Brain.OLLAMA,):
             yield from self._stream_ollama(messages, system, cfg)
