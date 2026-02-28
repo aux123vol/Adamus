@@ -49,6 +49,17 @@ class ModelRouter:
 
     # Brain specifications
     BRAINS = {
+        Brain.OPENCODE: BrainCapabilities(
+            name="OpenCode",
+            is_local=False,
+            max_data_level=2,
+            strengths=[
+                "coding", "general", "free", "open_source",
+                "background_work", "simple_tasks"
+            ],
+            cost_per_1k_tokens=0.0,  # Free hosted models
+            context_window=32000
+        ),
         Brain.CLAUDE: BrainCapabilities(
             name="Claude",
             is_local=False,
