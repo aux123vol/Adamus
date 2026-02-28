@@ -15,7 +15,8 @@
       "Bash(pytest:*)",
       "Bash(sudo ln:*)",
       "Bash(curl:*)",
-      "Bash(echo \"Ollama not running\" ls /home/johan/*.AppImage ls /home/johan/Desktop/*.AppImage)"
+      "Bash(echo \"Ollama not running\" ls /home/johan/*.AppImage ls /home/johan/Desktop/*.AppImage)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
