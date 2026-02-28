@@ -110,6 +110,46 @@ BRAIN_CONFIGS: Dict[Brain, BrainConfig] = {
         cost_per_1k=0.0,
         strengths=["sensitive_data", "background", "cost_free", "offline"],
     ),
+    Brain.GROQ: BrainConfig(
+        name="Groq",
+        is_local=False,
+        max_data_level=2,
+        base_url="https://api.groq.com/openai/v1",
+        api_key_env="GROQ_API_KEY",
+        default_model="llama-3.3-70b-versatile",
+        cost_per_1k=0.0,  # Free tier available
+        strengths=["fast", "free_tier", "coding", "chat"],
+    ),
+    Brain.GEMINI: BrainConfig(
+        name="Gemini",
+        is_local=False,
+        max_data_level=2,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+        api_key_env="GEMINI_API_KEY",
+        default_model="gemini-2.0-flash",
+        cost_per_1k=0.0,  # Free tier available
+        strengths=["free_tier", "multimodal", "chat", "coding"],
+    ),
+    Brain.GROK: BrainConfig(
+        name="Grok",
+        is_local=False,
+        max_data_level=2,
+        base_url="https://api.x.ai/v1",
+        api_key_env="GROK_API_KEY",
+        default_model="grok-3-mini",
+        cost_per_1k=0.0003,
+        strengths=["reasoning", "chat", "coding"],
+    ),
+    Brain.MISTRAL: BrainConfig(
+        name="Mistral",
+        is_local=False,
+        max_data_level=2,
+        base_url="https://api.mistral.ai/v1",
+        api_key_env="MISTRAL_API_KEY",
+        default_model="mistral-small-latest",
+        cost_per_1k=0.0002,
+        strengths=["cost_effective", "coding", "european_data"],
+    ),
     Brain.DEEPSEEK: BrainConfig(
         name="DeepSeek",
         is_local=False,
@@ -117,7 +157,7 @@ BRAIN_CONFIGS: Dict[Brain, BrainConfig] = {
         base_url="https://api.deepseek.com/v1",
         api_key_env="DEEPSEEK_API_KEY",
         default_model="deepseek-chat",
-        cost_per_1k=0.0002,  # ~50x cheaper than Claude
+        cost_per_1k=0.0002,
         strengths=["cost_effective", "coding", "chat"],
     ),
     Brain.OPENAI: BrainConfig(
