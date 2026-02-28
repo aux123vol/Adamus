@@ -211,7 +211,7 @@ class BrainOrchestrator:
         # Re-probe to catch brains that came online since last check
         self._probe_all()
 
-        if force and force in self._available:
+        if force is not None and force in self._available:
             cfg = BRAIN_CONFIGS[force]
             if data_level > cfg.max_data_level:
                 raise ValueError(
