@@ -149,14 +149,14 @@ class PPAIGateway:
             )
 
         # 4. Final safety check on sanitized content
-        if route == RouteDecision.CLAUDE:
+        if route == RouteDecision.EXTERNAL:
             final_check = self.classifier.classify(sanitized_prompt)
             if final_check.level > DataLevel.INTERNAL:
                 logger.warning(
                     f"[{audit_id}] Post-sanitization check failed, "
-                    f"routing to Ollama instead"
+                    f"routing to local brain instead"
                 )
-                route = RouteDecision.OLLAMA
+                route = RouteDecision.LOCAL
                 warnings.append("Fallback to local: sanitization incomplete")
 
         # 5. Audit log
