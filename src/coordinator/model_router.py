@@ -20,9 +20,16 @@ logger = logging.getLogger(__name__)
 
 class Brain(Enum):
     """Available AI brains."""
-    OPENCODE = "opencode"  # Free hosted models (opencode.ai) - default first
-    CLAUDE = "claude"      # External API - best reasoning (power fallback)
-    OLLAMA = "ollama"      # Local - free, private
+    OPENCODE  = "opencode"   # Free hosted models — default first
+    GROQ      = "groq"       # Fast + free tier
+    GEMINI    = "gemini"     # Google Gemini — free tier
+    CLAUDE    = "claude"     # Best reasoning — power fallback
+    GROK      = "grok"       # xAI Grok
+    MISTRAL   = "mistral"    # Cost-effective
+    DEEPSEEK  = "deepseek"   # Very cheap
+    OPENAI    = "openai"     # GPT-4o fallback
+    OLLAMA    = "ollama"     # Local — all data levels
+    LMSTUDIO  = "lmstudio"   # Local OpenAI-compat
 
 
 @dataclass
