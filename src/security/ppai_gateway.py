@@ -360,6 +360,9 @@ class PPAIGateway:
             r'sk-ant-',
             r'sk-[a-zA-Z0-9]{48}',
             r'ghp_[a-zA-Z0-9]{36}',
+            r'gsk_[a-zA-Z0-9]{52}',
+            r'AIza[a-zA-Z0-9_-]{35}',
+            r'xai-[a-zA-Z0-9]{32}',
             r'password\s*=\s*[^\s]',
         ]
 
