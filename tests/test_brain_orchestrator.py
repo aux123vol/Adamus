@@ -166,11 +166,12 @@ class TestBrainOrchestrator:
     # ── Streaming tests ──────────────────────────────────────────────────────
 
     def test_stream_yields_brain_header(self, orch_claude_only):
+        """Claude-only orchestrator should stream via Claude and yield brain header."""
         chunks = []
         def fake_stream_claude(self_inner, messages, system, cfg):
             yield "Hello world"
         with patch('src.coordinator.brain_orchestrator.BrainOrchestrator._stream_claude', fake_stream_claude):
-            for chunk in orch_claude_only.stream([{"role":"user","content":"hi"}]):
+            for chunk in orch_claude_only.stream([{"role": "user", "content": "hi"}]):
                 chunks.append(chunk)
         assert any(c.startswith("__brain__") for c in chunks)
         assert any("Hello" in c for c in chunks)
