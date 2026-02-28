@@ -350,10 +350,10 @@ class PPAIGateway:
         if classification.level == DataLevel.SECRET:
             return False, "Level 4 SECRET data cannot be sent to any AI"
 
-        # Level 3: Ollama only
+        # Level 3: Local brains only
         if classification.level == DataLevel.CONFIDENTIAL:
-            if target_brain.lower() != 'ollama':
-                return False, "Level 3 CONFIDENTIAL data can only be sent to Ollama"
+            if target_brain.lower() not in LOCAL_BRAINS:
+                return False, f"Level 3 CONFIDENTIAL data can only go to local brains {LOCAL_BRAINS}, got: {target_brain}"
 
         # Check for residual secrets (belt and suspenders)
         secret_patterns = [
