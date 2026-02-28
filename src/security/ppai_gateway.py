@@ -135,7 +135,7 @@ class PPAIGateway:
         sanitized_prompt = prompt
         warnings = []
 
-        if classification.sanitization_required or route == RouteDecision.CLAUDE:
+        if classification.sanitization_required or route == RouteDecision.EXTERNAL:
             sanitization = self.sanitize(prompt)
             sanitized_prompt = sanitization.sanitized_content
 
