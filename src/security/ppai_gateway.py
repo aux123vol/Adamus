@@ -252,6 +252,31 @@ class PPAIGateway:
         )
         replacements += len(matches)
 
+        # Groq API keys
+        groq_pattern = r'gsk_[a-zA-Z0-9]{52}'
+        matches = re.findall(groq_pattern, sanitized)
+        secrets_found += len(matches)
+        sanitized = re.sub(groq_pattern, '[GROQ_KEY]', sanitized)
+        replacements += len(matches)
+
+        # Gemini / Google API keys
+        gemini_pattern = r'AIza[a-zA-Z0-9_-]{35}'
+        matches = re.findall(gemini_pattern, sanitized)
+        secrets_found += len(matches)
+        sanitized = re.sub(gemini_pattern, '[GEMINI_KEY]', sanitized)
+        replacements += len(matches)
+
+        # xAI / Grok API keys
+        xai_pattern = r'xai-[a-zA-Z0-9]{32,}'
+        matches = re.findall(xai_pattern, sanitized)
+        secrets_found += len(matches)
+        sanitized = re.sub(xai_pattern, '[GROK_KEY]', sanitized)
+        replacements += len(matches)
+
+        # Mistral API keys
+        mistral_pattern = r'[a-zA-Z0-9]{32}(?=[^a-zA-Z0-9]|$)'
+        # (too broad — use generic secret pattern instead, handled below)
+
         # AWS keys
         aws_pattern = r'(aws_access_key_id|aws_secret_access_key)\s*=\s*\S+'
         matches = re.findall(aws_pattern, sanitized, re.IGNORECASE)
