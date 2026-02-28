@@ -174,6 +174,14 @@ class ModelRouter:
             logger.warning("opencode CLI not found - OpenCode unavailable")
         return available
 
+    def _check_api_key(self, env_var: str, name: str) -> bool:
+        """Generic API key check."""
+        key = os.getenv(env_var, "")
+        available = bool(key) and "YOUR-KEY" not in key
+        if not available:
+            logger.debug(f"{env_var} not set - {name} unavailable")
+        return available
+
     def _check_claude(self) -> bool:
         """Check if Claude API is available."""
         api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -191,6 +199,15 @@ class ModelRouter:
             return True
         except Exception:
             logger.warning(f"Ollama not available at {ollama_host}")
+            return False
+
+    def _check_lmstudio(self) -> bool:
+        """Check if LM Studio is running locally."""
+        try:
+            import urllib.request
+            urllib.request.urlopen("http://localhost:1234/v1/models", timeout=2)
+            return True
+        except Exception:
             return False
 
     def select_brain(
