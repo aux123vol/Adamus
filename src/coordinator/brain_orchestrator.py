@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 class Brain(Enum):
-    CLAUDE    = "claude"
+    OPENCODE  = "opencode"   # Free hosted models — default first
+    CLAUDE    = "claude"     # Best reasoning — power fallback
     OLLAMA    = "ollama"
     LMSTUDIO  = "lmstudio"
     DEEPSEEK  = "deepseek"
