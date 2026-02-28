@@ -18,7 +18,9 @@
       "Bash(echo \"Ollama not running\" ls /home/johan/*.AppImage ls /home/johan/Desktop/*.AppImage)",
       "WebFetch(domain:github.com)",
       "Bash(cat:*)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(git:*)",
+      "Bash(ls:*)"
     ]
   }
 }
