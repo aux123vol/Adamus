@@ -294,25 +294,28 @@ class ModelRouter:
 
     def get_brain_status(self) -> Dict[str, Dict]:
         """Get status of all brains."""
+        availability = {
+            Brain.OPENCODE:  self._opencode_available,
+            Brain.GROQ:      self._groq_available,
+            Brain.GEMINI:    self._gemini_available,
+            Brain.CLAUDE:    self._claude_available,
+            Brain.GROK:      self._grok_available,
+            Brain.MISTRAL:   self._mistral_available,
+            Brain.DEEPSEEK:  self._deepseek_available,
+            Brain.OPENAI:    self._openai_available,
+            Brain.OLLAMA:    self._ollama_available,
+            Brain.LMSTUDIO:  self._lmstudio_available,
+        }
         return {
-            "opencode": {
-                "available": self._opencode_available,
-                "capabilities": self.BRAINS[Brain.OPENCODE].strengths,
-                "cost": "Free (opencode.ai hosted models)",
-                "max_data_level": self.BRAINS[Brain.OPENCODE].max_data_level
-            },
-            "claude": {
-                "available": self._claude_available,
-                "capabilities": self.BRAINS[Brain.CLAUDE].strengths,
-                "cost": f"${self.BRAINS[Brain.CLAUDE].cost_per_1k_tokens}/1k tokens",
-                "max_data_level": self.BRAINS[Brain.CLAUDE].max_data_level
-            },
-            "ollama": {
-                "available": self._ollama_available,
-                "capabilities": self.BRAINS[Brain.OLLAMA].strengths,
-                "cost": "Free (local)",
-                "max_data_level": self.BRAINS[Brain.OLLAMA].max_data_level
+            b.value: {
+                "name": caps.name,
+                "available": availability[b],
+                "local": caps.is_local,
+                "cost": f"${caps.cost_per_1k_tokens}/1k" if caps.cost_per_1k_tokens else "Free",
+                "max_data_level": caps.max_data_level,
+                "capabilities": caps.strengths,
             }
+            for b, caps in self.BRAINS.items()
         }
 
     def update_budget(self, remaining: float) -> None:
