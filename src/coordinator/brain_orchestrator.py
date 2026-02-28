@@ -298,6 +298,41 @@ class BrainOrchestrator:
         else:
             yield "No compatible streaming method for this brain."
 
+    def _stream_opencode(self, messages, system, cfg):
+        """Run opencode CLI non-interactively and yield the response."""
+        import shutil
+        import subprocess
+        import re
+
+        opencode_bin = shutil.which("opencode")
+        if not opencode_bin:
+            yield "⚠️ opencode CLI not found"
+            return
+
+        prompt = self._msgs_to_prompt(messages, system)
+        try:
+            result = subprocess.run(
+                [opencode_bin, "run", "-m", cfg.default_model, prompt],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            output = result.stdout or ""
+            # Strip ANSI escape codes
+            ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+            output = ansi_escape.sub("", output).strip()
+            if output:
+                yield output
+            elif result.stderr:
+                err = ansi_escape.sub("", result.stderr).strip()
+                yield f"⚠️ OpenCode: {err[:300]}"
+            else:
+                yield "⚠️ OpenCode returned empty response"
+        except subprocess.TimeoutExpired:
+            yield "⚠️ OpenCode timed out (120s)"
+        except Exception as e:
+            yield f"⚠️ OpenCode error: {e}"
+
     def _stream_claude(self, messages, system, cfg):
         try:
             import anthropic

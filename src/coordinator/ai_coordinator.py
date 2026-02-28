@@ -364,6 +364,7 @@ class AICoordinator:
 
         # Map Brain enum to OrcBrain enum
         brain_map = {
+            Brain.OPENCODE: OrcBrain.OPENCODE,
             Brain.CLAUDE: OrcBrain.CLAUDE,
             Brain.OLLAMA: OrcBrain.OLLAMA,
         }
