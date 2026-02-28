@@ -92,20 +92,22 @@ class TestBrainOrchestrator:
         with pytest.raises(RuntimeError, match="local brain"):
             orch_claude_only.route(data_level=3)
 
-    def test_chat_routes_to_claude_first(self, orch_claude_only):
+    def test_chat_routes_to_claude_when_only_claude_available(self, orch_claude_only):
         from src.coordinator.brain_orchestrator import TaskType, Brain
         brain, reason = orch_claude_only.route(task_type=TaskType.CHAT)
         assert brain == Brain.CLAUDE
 
-    def test_coding_routes_to_claude(self, orch_all):
+    def test_coding_prefers_free_brain(self, orch_all):
+        """OpenCode (free) takes priority; Claude is power fallback."""
         from src.coordinator.brain_orchestrator import TaskType, Brain
         brain, reason = orch_all.route(task_type=TaskType.CODING)
-        assert brain == Brain.CLAUDE
+        assert brain in (Brain.OPENCODE, Brain.CLAUDE)
 
-    def test_background_prefers_local(self, orch_all):
-        from src.coordinator.brain_orchestrator import TaskType, Brain
+    def test_background_prefers_free_brain(self, orch_all):
+        """Background tasks use a free brain (opencode or local Ollama)."""
+        from src.coordinator.brain_orchestrator import TaskType, Brain, BRAIN_CONFIGS
         brain, reason = orch_all.route(task_type=TaskType.BACKGROUND)
-        assert BRAIN_CONFIGS_is_local(brain)
+        assert BRAIN_CONFIGS[brain].cost_per_1k == 0.0
 
     def test_force_brain_respected(self, orch_all):
         from src.coordinator.brain_orchestrator import TaskType, Brain
