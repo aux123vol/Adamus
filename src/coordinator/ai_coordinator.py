@@ -359,14 +359,33 @@ class AICoordinator:
         """
         from .brain_orchestrator import BrainOrchestrator, TaskType
         from .brain_orchestrator import Brain as OrcBrain
+        from ..security.ppai_gateway import PPAIGateway
+
+        # PPAI: final validation before ANY brain call
+        ppai = PPAIGateway()
+        valid, reason = ppai.validate_before_send(prompt, target_brain=brain.value)
+        if not valid:
+            logger.error(f"[{task_id}] PPAI blocked brain call: {reason}")
+            return {
+                "content": f"[PPAI BLOCKED] {reason}",
+                "tokens": 0,
+                "cost": 0.0,
+            }
 
         orchestrator = BrainOrchestrator()
 
-        # Map Brain enum to OrcBrain enum
+        # Map Brain enum to OrcBrain enum (all brains)
         brain_map = {
             Brain.OPENCODE: OrcBrain.OPENCODE,
-            Brain.CLAUDE: OrcBrain.CLAUDE,
-            Brain.OLLAMA: OrcBrain.OLLAMA,
+            Brain.CLAUDE:   OrcBrain.CLAUDE,
+            Brain.GROQ:     OrcBrain.GROQ,
+            Brain.GEMINI:   OrcBrain.GEMINI,
+            Brain.GROK:     OrcBrain.GROK,
+            Brain.MISTRAL:  OrcBrain.MISTRAL,
+            Brain.DEEPSEEK: OrcBrain.DEEPSEEK,
+            Brain.OPENAI:   OrcBrain.OPENAI,
+            Brain.OLLAMA:   OrcBrain.OLLAMA,
+            Brain.LMSTUDIO: OrcBrain.LMSTUDIO,
         }
         force_brain = brain_map.get(brain)
 
@@ -397,7 +416,8 @@ class AICoordinator:
 
         content = "".join(chunks)
         tokens = len(content) // 4
-        cost = (tokens / 1000) * (0.009 if brain == Brain.CLAUDE else 0.0)
+        brain_cost = self.model_router.BRAINS.get(brain)
+        cost = (tokens / 1000) * (brain_cost.cost_per_1k_tokens if brain_cost else 0.0)
 
         return {"content": content, "tokens": tokens, "cost": cost}
 
