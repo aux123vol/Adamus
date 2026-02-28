@@ -60,12 +60,25 @@ class ModelRouter:
             name="OpenCode",
             is_local=False,
             max_data_level=2,
-            strengths=[
-                "coding", "general", "free", "open_source",
-                "background_work", "simple_tasks"
-            ],
-            cost_per_1k_tokens=0.0,  # Free hosted models
+            strengths=["coding", "general", "free", "open_source"],
+            cost_per_1k_tokens=0.0,
             context_window=32000
+        ),
+        Brain.GROQ: BrainCapabilities(
+            name="Groq",
+            is_local=False,
+            max_data_level=2,
+            strengths=["fast", "free_tier", "coding", "chat"],
+            cost_per_1k_tokens=0.0,
+            context_window=131072
+        ),
+        Brain.GEMINI: BrainCapabilities(
+            name="Gemini",
+            is_local=False,
+            max_data_level=2,
+            strengths=["free_tier", "multimodal", "chat", "coding"],
+            cost_per_1k_tokens=0.0,
+            context_window=1000000
         ),
         Brain.CLAUDE: BrainCapabilities(
             name="Claude",
