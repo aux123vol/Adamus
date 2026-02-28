@@ -11,13 +11,11 @@ import pytest
 class TestModelRouter:
     """Tests for model routing."""
 
-    def test_routes_safe_data_to_claude(self):
-        """Test safe data can route to Claude."""
+    def test_routes_safe_data_to_free_brain(self):
+        """Test safe data routes to a free brain (opencode first, then Claude fallback)."""
         from src.coordinator.model_router import ModelRouter, Brain
 
         router = ModelRouter(budget_remaining=100.0)
-
-        # Mock Claude as available
         router._claude_available = True
         router._ollama_available = True
 
@@ -26,7 +24,8 @@ class TestModelRouter:
             task_type="coding"
         )
 
-        assert brain == Brain.CLAUDE
+        # OpenCode is free and takes priority; Claude is the power fallback
+        assert brain in (Brain.OPENCODE, Brain.CLAUDE)
 
     def test_routes_confidential_to_ollama(self):
         """Test confidential data must route to Ollama."""
