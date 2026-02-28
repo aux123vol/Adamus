@@ -98,6 +98,7 @@ class ModelRouter:
         """
         self.budget_remaining = budget_remaining
         self.prefer_local = prefer_local
+        self._opencode_available = self._check_opencode()
         self._claude_available = self._check_claude()
         self._ollama_available = self._check_ollama()
 
