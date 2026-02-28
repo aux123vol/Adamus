@@ -330,11 +330,12 @@ class BrainOrchestrator:
             yield from self._stream_opencode(messages, system, cfg)
         elif brain == Brain.CLAUDE:
             yield from self._stream_claude(messages, system, cfg)
-        elif brain in (Brain.OLLAMA,):
+        elif brain == Brain.OLLAMA:
             yield from self._stream_ollama(messages, system, cfg)
-        elif brain == Brain.LMSTUDIO:
-            yield from self._stream_openai_compat(messages, system, cfg)
-        elif brain in (Brain.DEEPSEEK, Brain.OPENAI):
+        elif brain in (
+            Brain.LMSTUDIO, Brain.GROQ, Brain.GEMINI,
+            Brain.GROK, Brain.MISTRAL, Brain.DEEPSEEK, Brain.OPENAI,
+        ):
             yield from self._stream_openai_compat(messages, system, cfg)
         else:
             yield "No compatible streaming method for this brain."
