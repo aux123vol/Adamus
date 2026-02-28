@@ -91,17 +91,54 @@ class ModelRouter:
             cost_per_1k_tokens=0.009,  # Average of input/output
             context_window=200000
         ),
+        Brain.GROK: BrainCapabilities(
+            name="Grok",
+            is_local=False,
+            max_data_level=2,
+            strengths=["reasoning", "chat", "coding"],
+            cost_per_1k_tokens=0.0003,
+            context_window=131072
+        ),
+        Brain.MISTRAL: BrainCapabilities(
+            name="Mistral",
+            is_local=False,
+            max_data_level=2,
+            strengths=["cost_effective", "coding", "european_data"],
+            cost_per_1k_tokens=0.0002,
+            context_window=32000
+        ),
+        Brain.DEEPSEEK: BrainCapabilities(
+            name="DeepSeek",
+            is_local=False,
+            max_data_level=2,
+            strengths=["cost_effective", "coding", "chat"],
+            cost_per_1k_tokens=0.0002,
+            context_window=64000
+        ),
+        Brain.OPENAI: BrainCapabilities(
+            name="OpenAI",
+            is_local=False,
+            max_data_level=2,
+            strengths=["fallback", "chat", "coding"],
+            cost_per_1k_tokens=0.0003,
+            context_window=128000
+        ),
         Brain.OLLAMA: BrainCapabilities(
             name="Ollama",
             is_local=True,
-            max_data_level=4,  # Can handle all levels (local)
-            strengths=[
-                "simple_tasks", "background_work", "sensitive_data",
-                "cost_sensitive", "summarization"
-            ],
-            cost_per_1k_tokens=0.0,  # Free (local)
+            max_data_level=4,
+            strengths=["sensitive_data", "background_work", "cost_free"],
+            cost_per_1k_tokens=0.0,
             context_window=32000
-        )
+        ),
+        Brain.LMSTUDIO: BrainCapabilities(
+            name="LM Studio",
+            is_local=True,
+            max_data_level=4,
+            strengths=["sensitive_data", "offline", "cost_free"],
+            cost_per_1k_tokens=0.0,
+            context_window=32000
+        ),
     }
 
     def __init__(
