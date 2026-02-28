@@ -26,9 +26,13 @@ logger = logging.getLogger(__name__)
 
 class RouteDecision(Enum):
     """Where to route the AI call."""
-    CLAUDE = "claude"          # External API (Level 1-2 after sanitization)
-    OLLAMA = "ollama"          # Local AI (Level 3)
+    EXTERNAL = "external"      # External API (Level 1-2 after sanitization)
+    LOCAL = "local"            # Local AI only (Level 3) — Ollama / LM Studio
     BLOCKED = "blocked"        # Cannot process (Level 4)
+
+
+# Brains that run locally — safe for Level 3-4 data
+LOCAL_BRAINS = {"ollama", "lmstudio", "local"}
 
 
 @dataclass
