@@ -102,6 +102,14 @@ class ModelRouter:
         self._claude_available = self._check_claude()
         self._ollama_available = self._check_ollama()
 
+    def _check_opencode(self) -> bool:
+        """Check if opencode CLI is installed."""
+        import shutil
+        available = shutil.which("opencode") is not None
+        if not available:
+            logger.warning("opencode CLI not found - OpenCode unavailable")
+        return available
+
     def _check_claude(self) -> bool:
         """Check if Claude API is available."""
         api_key = os.getenv("ANTHROPIC_API_KEY")
