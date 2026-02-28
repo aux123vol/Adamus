@@ -21,11 +21,13 @@
       "Bash(export:*)",
       "Bash(git:*)",
       "Bash(ls:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "mcp__mcp-search__search",
+      "mcp__mcp-search__get_observations"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "mcp-search"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
