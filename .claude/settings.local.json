@@ -21,8 +21,11 @@
       "Bash(export:*)",
       "Bash(git:*)",
       "Bash(ls:*)",
-      "Bash(python:*)",
-      "Bash(chmod +x:* also opencode need to also be the brain espiclally when cladecode down clade code power coder but opencode powerful and free)"
+      "Bash(python:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "mcp-search"
+  ],
+  "enableAllProjectMcpServers": true
 }
