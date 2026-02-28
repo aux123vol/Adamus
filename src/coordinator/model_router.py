@@ -221,6 +221,12 @@ class ModelRouter:
     def get_brain_status(self) -> Dict[str, Dict]:
         """Get status of all brains."""
         return {
+            "opencode": {
+                "available": self._opencode_available,
+                "capabilities": self.BRAINS[Brain.OPENCODE].strengths,
+                "cost": "Free (opencode.ai hosted models)",
+                "max_data_level": self.BRAINS[Brain.OPENCODE].max_data_level
+            },
             "claude": {
                 "available": self._claude_available,
                 "capabilities": self.BRAINS[Brain.CLAUDE].strengths,
