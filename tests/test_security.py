@@ -125,6 +125,55 @@ class TestPPAIGateway:
         assert "[REDACTED]" in result.sanitized_content
         assert "mysecret123" not in result.sanitized_content
 
+    def test_validate_before_send_blocks_secret_from_external(self):
+        """PPAI last-line-of-defense: Anthropic key must not reach any external brain."""
+        from src.security.ppai_gateway import PPAIGateway
+
+        gateway = PPAIGateway()
+        fake_key_prompt = "My key is sk-ant-api03-FAKEFAKEFAKEFAKEFAKE"
+
+        for external_brain in ["claude", "groq", "gemini", "grok", "mistral", "openai", "opencode"]:
+            valid, reason = gateway.validate_before_send(fake_key_prompt, external_brain)
+            assert not valid, f"Brain '{external_brain}' should have been blocked"
+
+    def test_validate_before_send_allows_clean_prompt(self):
+        """Clean prompts pass PPAI validation for all brains."""
+        from src.security.ppai_gateway import PPAIGateway
+
+        gateway = PPAIGateway()
+        clean = "Help me write a Python function to sort a list."
+
+        for brain in ["claude", "groq", "gemini", "ollama"]:
+            valid, reason = gateway.validate_before_send(clean, brain)
+            assert valid, f"Clean prompt should pass for '{brain}': {reason}"
+
+    def test_validate_blocks_confidential_on_external_brain(self):
+        """Level-3 confidential data must not reach external brains."""
+        from src.security.ppai_gateway import PPAIGateway
+
+        gateway = PPAIGateway()
+        # Trigger confidential via explicit keyword known to data_classifier
+        confidential = "password=SuperSecret123 user credentials here"
+
+        valid, reason = gateway.validate_before_send(confidential, "claude")
+        # Should block because residual secret pattern is present
+        assert not valid
+
+    def test_new_key_patterns_redacted(self):
+        """Groq, Gemini, and xAI keys are redacted by sanitizer."""
+        from src.security.ppai_gateway import PPAIGateway
+
+        gateway = PPAIGateway()
+
+        groq_key   = "gsk_" + "a" * 52
+        gemini_key = "AIza" + "b" * 35
+        xai_key    = "xai-" + "c" * 32
+
+        for key, label in [(groq_key, "GROQ"), (gemini_key, "GEMINI"), (xai_key, "GROK")]:
+            result = gateway.sanitize(f"My key is {key} use it")
+            assert key not in result.sanitized_content, f"{label} key not redacted"
+            assert result.secrets_found >= 1
+
 
 class TestPromptDefense:
     """Tests for prompt injection defense."""
