@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 
 class Brain(Enum):
     """Available AI brains."""
-    CLAUDE = "claude"     # External API - best reasoning
-    OLLAMA = "ollama"     # Local - free, private
+    OPENCODE = "opencode"  # Free hosted models (opencode.ai) - default first
+    CLAUDE = "claude"      # External API - best reasoning (power fallback)
+    OLLAMA = "ollama"      # Local - free, private
 
 
 @dataclass
