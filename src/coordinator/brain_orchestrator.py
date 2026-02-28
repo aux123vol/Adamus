@@ -219,6 +219,11 @@ class BrainOrchestrator:
                 )
             return force, f"Forced: {cfg.name}"
 
+        # OpenCode first — free hosted models, no API key needed
+        if data_level <= 2 and task_type != TaskType.SENSITIVE:
+            if Brain.OPENCODE in self._available:
+                return Brain.OPENCODE, "OpenCode first (free open-source models)"
+
         # Security: Level 3-4 → local only
         if data_level >= 3:
             for brain in (Brain.OLLAMA, Brain.LMSTUDIO):
