@@ -1,7 +1,7 @@
 """
 test_capability: A test capability
 
-AUTO-GENERATED STUB — 2026-03-01T15:57:37.879979
+AUTO-GENERATED STUB — 2026-03-01T15:57:42.086887
 Replace this implementation with a real one.
 """
 
