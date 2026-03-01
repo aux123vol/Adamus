@@ -11,11 +11,23 @@ fi
 
 cd "$ADAMUS_DIR"
 
+# Kill any stale process on the UI port before starting
+_kill_port() {
+    local port="${1:-8888}"
+    local pid
+    pid=$(ss -tlnp 2>/dev/null | awk -v p=":$port " '$0~p{match($0,/pid=([0-9]+)/,a); print a[1]}')
+    if [ -n "$pid" ]; then
+        echo "Stopping stale Adamus process (pid $pid) on port $port..."
+        kill "$pid" 2>/dev/null
+        sleep 1
+    fi
+}
+
 case "${1:-}" in
-    start)      $PYTHON -m src.main ;;
-    ui)         $PYTHON -m src.main --ui ;;
+    start)      _kill_port 8888; $PYTHON -m src.main ;;
+    ui)         _kill_port 8888; $PYTHON -m src.main --ui ;;
     cli)        $PYTHON -m src.main --cli ;;
-    chat)       $PYTHON src/ui/unified_app.py ;;
+    chat)       _kill_port 8888; $PYTHON src/ui/unified_app.py ;;
     status)     $PYTHON -c "
 import sys, os
 sys.path.insert(0, '$ADAMUS_DIR')
