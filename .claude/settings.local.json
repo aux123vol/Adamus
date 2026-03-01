@@ -28,7 +28,8 @@
       "WebFetch(domain:opencode.ai)",
       "Bash(opencode:*)",
       "Bash(ss:*)",
-      "Bash(fuser:*)"
+      "Bash(fuser:*)",
+      "Bash(git log:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
