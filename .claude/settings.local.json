@@ -26,7 +26,8 @@
       "mcp__mcp-search__get_observations",
       "Bash(~/.bun/bin/bun:*)",
       "WebFetch(domain:opencode.ai)",
-      "Bash(opencode:*)"
+      "Bash(opencode:*)",
+      "Bash(ss:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
