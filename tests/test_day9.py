@@ -358,3 +358,208 @@ class TestAutonomousLoopDay9Wiring:
         # Before _init_components they should be None
         assert loop._self_build_agent is None
         assert loop._genre_build_agent is None
+
+
+# ── API endpoints ──────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def web_client():
+    from src.ui.unified_app import create_app
+    app = create_app()
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        yield c
+
+
+class TestSelfBuildApiEndpoints:
+    """GET/POST /api/self-build must exist and return expected JSON."""
+
+    def test_get_self_build_status_returns_200(self, web_client):
+        r = web_client.get("/api/self-build")
+        assert r.status_code == 200
+
+    def test_get_self_build_status_is_json(self, web_client):
+        r = web_client.get("/api/self-build")
+        data = json.loads(r.data)
+        assert isinstance(data, dict)
+
+    def test_get_self_build_has_ok_field(self, web_client):
+        r = web_client.get("/api/self-build")
+        data = json.loads(r.data)
+        assert "ok" in data
+
+    def test_get_self_build_has_pending_gaps(self, web_client):
+        r = web_client.get("/api/self-build")
+        data = json.loads(r.data)
+        if data.get("ok"):
+            assert "pending_gaps" in data
+            assert isinstance(data["pending_gaps"], int)
+
+    def test_post_self_build_trigger_returns_200(self, web_client):
+        import json as json_mod
+        r = web_client.post(
+            "/api/self-build",
+            data=json_mod.dumps({"max_capabilities": 0}),
+            content_type="application/json",
+        )
+        assert r.status_code == 200
+
+    def test_post_self_build_trigger_has_attempted(self, web_client):
+        import json as json_mod
+        r = web_client.post(
+            "/api/self-build",
+            data=json_mod.dumps({"max_capabilities": 0}),
+            content_type="application/json",
+        )
+        data = json.loads(r.data)
+        if data.get("ok"):
+            assert "attempted" in data
+            assert "built" in data
+            assert "failed" in data
+
+
+class TestGenreBuildApiEndpoints:
+    """GET/POST /api/genre-build must exist and return expected JSON."""
+
+    def test_get_genre_build_status_returns_200(self, web_client):
+        r = web_client.get("/api/genre-build")
+        assert r.status_code == 200
+
+    def test_get_genre_build_status_is_json(self, web_client):
+        r = web_client.get("/api/genre-build")
+        data = json.loads(r.data)
+        assert isinstance(data, dict)
+
+    def test_get_genre_build_has_ok_field(self, web_client):
+        r = web_client.get("/api/genre-build")
+        data = json.loads(r.data)
+        assert "ok" in data
+
+    def test_get_genre_build_has_queue_fields(self, web_client):
+        r = web_client.get("/api/genre-build")
+        data = json.loads(r.data)
+        if data.get("ok"):
+            assert "total" in data
+            assert "pending" in data
+
+    def test_post_genre_build_empty_queue_returns_200(self, web_client):
+        import json as json_mod
+        r = web_client.post(
+            "/api/genre-build",
+            data=json_mod.dumps({"max_features": 0}),
+            content_type="application/json",
+        )
+        assert r.status_code == 200
+
+    def test_post_genre_build_returns_result_shape(self, web_client):
+        import json as json_mod
+        r = web_client.post(
+            "/api/genre-build",
+            data=json_mod.dumps({"max_features": 0}),
+            content_type="application/json",
+        )
+        data = json.loads(r.data)
+        if data.get("ok"):
+            assert "attempted" in data
+            assert "built" in data
+            assert "queue" in data
+
+
+# ── Integration test: full self-improvement loop ───────────────────────────────
+
+class TestSelfImprovementIntegration:
+    """
+    Prove the full loop: detect gap → build capability → test → result.
+
+    Uses real SelfBuildAgent but mocks the underlying SelfBuilder so no
+    actual Claude API call or file write is made.
+    """
+
+    def test_full_loop_gap_to_built(self, tmp_path):
+        """Gap detected → build_with_context called → CycleResult shows 1 built."""
+        from src.autonomous.self_build_agent import SelfBuildAgent
+        from src.autonomous.self_builder import BuildResult
+
+        agent = SelfBuildAgent()
+
+        # Inject a single known gap
+        fake_gap = [{"name": "integration_cap", "description": "Integration test cap"}]
+
+        # SelfBuilder returns success on first attempt
+        mock_build_result = BuildResult(
+            success=True,
+            capability_name="integration_cap",
+            attempts=1,
+            file_path=str(tmp_path / "integration_cap.py"),
+            test_output="1 passed",
+        )
+
+        with patch.object(agent, "_detect_gaps", return_value=fake_gap), \
+             patch.object(agent._builder, "build_capability", return_value=mock_build_result):
+            cycle = agent.run_cycle(max_capabilities=5)
+
+        assert cycle.capabilities_attempted == 1
+        assert cycle.capabilities_built == 1
+        assert cycle.capabilities_failed == 0
+        assert cycle.details[0]["name"] == "integration_cap"
+        assert cycle.details[0]["success"] is True
+
+    def test_full_loop_failure_records_history(self, tmp_path):
+        """Gap → build fails → failure history is recorded for next retry."""
+        from src.autonomous.self_build_agent import SelfBuildAgent
+        from src.autonomous.self_builder import BuildResult
+
+        agent = SelfBuildAgent()
+        fake_gap = [{"name": "flaky_cap", "description": "Flaky capability"}]
+        mock_fail = BuildResult(
+            success=False,
+            capability_name="flaky_cap",
+            attempts=3,
+            file_path=str(tmp_path / "flaky_cap.py"),
+            test_output="FAILED: assertion error",
+            error="tests failed after 3 attempts",
+        )
+
+        with patch.object(agent, "_detect_gaps", return_value=fake_gap), \
+             patch.object(agent._builder, "build_capability", return_value=mock_fail):
+            cycle = agent.run_cycle()
+
+        assert cycle.capabilities_failed == 1
+        history = agent.get_failure_history("flaky_cap")
+        assert len(history) == 1
+        assert "assertion" in history[0].error_summary.lower()
+
+    def test_full_loop_retry_passes_failure_context(self, tmp_path):
+        """On second run, failure history must appear in the enriched description."""
+        from src.autonomous.self_build_agent import SelfBuildAgent
+        from src.autonomous.self_builder import BuildResult
+
+        agent = SelfBuildAgent()
+        fake_gap = [{"name": "retry_cap", "description": "Will retry"}]
+        mock_fail = BuildResult(
+            success=False, capability_name="retry_cap", attempts=3,
+            file_path=str(tmp_path / "retry_cap.py"),
+            test_output="boom", error="boom error",
+        )
+
+        # First run — record failure
+        with patch.object(agent, "_detect_gaps", return_value=fake_gap), \
+             patch.object(agent._builder, "build_capability", return_value=mock_fail):
+            agent.run_cycle()
+
+        # Second run — capture what description is passed to build_capability
+        captured = {}
+        original_build = agent._builder.build_capability
+
+        def capture_build(name, desc):
+            captured["description"] = desc
+            return BuildResult(success=True, capability_name=name, attempts=1,
+                               file_path="x.py", test_output="ok")
+
+        with patch.object(agent, "_detect_gaps", return_value=fake_gap), \
+             patch.object(agent._builder, "build_capability", side_effect=capture_build):
+            agent.run_cycle()
+
+        # The failure context must be injected into the description
+        assert "Previous Failures" in captured.get("description", "") or \
+               "boom error" in captured.get("description", "")
