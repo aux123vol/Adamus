@@ -30,7 +30,8 @@
       "Bash(ss:*)",
       "Bash(fuser:*)",
       "Bash(git log:*)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(wc:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
