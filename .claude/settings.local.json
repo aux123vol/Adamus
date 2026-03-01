@@ -29,7 +29,8 @@
       "Bash(opencode:*)",
       "Bash(ss:*)",
       "Bash(fuser:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(chmod +x:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
