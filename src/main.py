@@ -130,20 +130,33 @@ async def main(args: argparse.Namespace) -> None:
 
     # ── Keep alive ────────────────────────────────────────────────────────
     if args.cli_only:
-        # Interactive CLI mode
         from src.ui.adamus_interface import AdamusInterface
         interface = AdamusInterface(coordinator)
+        interface._loop_ref = auto_loop
         await interface.run()
     else:
         logger.info("Adamus running. Web UI: http://localhost:8888")
-        logger.info("Press Ctrl+C to stop.")
-        try:
-            while True:
-                await asyncio.sleep(60)
-        except (KeyboardInterrupt, SystemExit):
-            logger.info("Shutting down Adamus...")
-            if auto_loop:
-                auto_loop.stop()
+        logger.info("Press Ctrl+C or send SIGTERM to stop.")
+
+        # Graceful shutdown for both Ctrl+C (dev) and systemd SIGTERM (daemon)
+        stop_event = asyncio.Event()
+
+        def _signal_handler(*_):
+            logger.info("Shutdown signal received")
+            stop_event.set()
+
+        ev_loop = asyncio.get_event_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                ev_loop.add_signal_handler(sig, _signal_handler)
+            except (NotImplementedError, RuntimeError):
+                signal.signal(sig, _signal_handler)
+
+        await stop_event.wait()
+        logger.info("Shutting down Adamus...")
+        if auto_loop:
+            auto_loop.stop()
+        logger.info("Adamus stopped cleanly.")
 
 
 def run() -> None:
