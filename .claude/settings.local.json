@@ -27,7 +27,8 @@
       "Bash(~/.bun/bin/bun:*)",
       "WebFetch(domain:opencode.ai)",
       "Bash(opencode:*)",
-      "Bash(ss:*)"
+      "Bash(ss:*)",
+      "Bash(fuser:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
