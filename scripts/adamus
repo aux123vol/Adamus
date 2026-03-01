@@ -66,6 +66,7 @@ except: pass
         echo "  ui           Start web UI only (http://localhost:8888)"
         echo "  cli          Start CLI interactive mode"
         echo "  chat         Start chat UI only"
+        echo "  stop         Stop the web UI (kill port 8888)"
         echo "  status       Show brain/system status"
         echo "  test         Run test suite"
         echo "  logs         Tail main logs"
