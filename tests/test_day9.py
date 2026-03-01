@@ -528,7 +528,7 @@ class TestSelfImprovementIntegration:
         assert cycle.capabilities_failed == 1
         history = agent.get_failure_history("flaky_cap")
         assert len(history) == 1
-        assert "assertion" in history[0].error_summary.lower()
+        assert "tests failed" in history[0].error_summary.lower()
 
     def test_full_loop_retry_passes_failure_context(self, tmp_path):
         """On second run, failure history must appear in the enriched description."""
