@@ -323,6 +323,22 @@ class AutonomousLoop:
             logger.warning("Could not initialise SelfBuilder: %s", exc)
             self._self_builder = None
 
+        try:
+            from src.autonomous.self_build_agent import SelfBuildAgent
+            self._self_build_agent = SelfBuildAgent()
+            logger.info("SelfBuildAgent initialised")
+        except Exception as exc:
+            logger.warning("Could not initialise SelfBuildAgent: %s", exc)
+            self._self_build_agent = None
+
+        try:
+            from src.autonomous.genre_build_agent import GenreBuildAgent
+            self._genre_build_agent = GenreBuildAgent()
+            logger.info("GenreBuildAgent initialised")
+        except Exception as exc:
+            logger.warning("Could not initialise GenreBuildAgent: %s", exc)
+            self._genre_build_agent = None
+
     # ------------------------------------------------------------------ #
     # Heartbeat loop                                                       #
     # ------------------------------------------------------------------ #
