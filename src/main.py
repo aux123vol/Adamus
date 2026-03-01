@@ -103,18 +103,24 @@ async def main(args: argparse.Namespace) -> None:
     try:
         init_status = await coordinator.initialize()
 
-        docs_n    = init_status.get("documents_loaded", "?")
-        sec_ok    = init_status.get("security_active", False)
-        brains    = init_status.get("brains", {})
-        claude_ok = brains.get("claude", {}).get("available", False)
-        ollama_ok = brains.get("ollama", {}).get("available", False)
+        docs_n = init_status.get("documents_loaded", "?")
+        sec_ok = init_status.get("security_active", False)
+        brains = init_status.get("brains", {})
 
         logger.info(f"Docs loaded  : {docs_n}")
         logger.info(f"Security     : {'✅ all 8 layers' if sec_ok else '⚠️  degraded'}")
-        logger.info(f"Claude       : {'✅' if claude_ok else '❌'}")
-        logger.info(f"Ollama       : {'✅' if ollama_ok else '❌'}")
+
+        # Report all brains
+        from src.coordinator.brain_orchestrator import BrainOrchestrator
+        orch_status = BrainOrchestrator().get_status()
+        available = [v["name"] for v in orch_status.values() if v["available"]]
+        unavailable = [v["name"] for v in orch_status.values() if not v["available"]]
+        logger.info(f"Brains UP    : {', '.join(available) or 'none'}")
+        if unavailable:
+            logger.info(f"Brains OFF   : {', '.join(unavailable)} (add API keys to .env)")
+
         logger.info("=" * 60)
-        logger.info("ADAMUS READY")
+        logger.info("ADAMUS READY — 24/7 autonomous operation active")
         logger.info("=" * 60)
 
     except Exception as e:
