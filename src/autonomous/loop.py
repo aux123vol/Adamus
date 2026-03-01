@@ -388,6 +388,38 @@ class AutonomousLoop:
             except Exception as exc:
                 logger.error("Self-improvement backlog error: %s", exc)
 
+        # Run SelfBuildAgent (context-aware capability building)
+        if self._self_build_agent is not None:
+            try:
+                cycle = self._self_build_agent.run_cycle(max_capabilities=2)
+                if cycle.capabilities_attempted:
+                    logger.info(
+                        "SelfBuildAgent: attempted=%d built=%d failed=%d",
+                        cycle.capabilities_attempted,
+                        cycle.capabilities_built,
+                        cycle.capabilities_failed,
+                    )
+                else:
+                    logger.debug("SelfBuildAgent: no gaps detected this cycle")
+            except Exception as exc:
+                logger.error("SelfBuildAgent heartbeat error: %s", exc)
+
+        # Run GenreBuildAgent (Genre feature building)
+        if self._genre_build_agent is not None:
+            try:
+                cycle = self._genre_build_agent.run_cycle(max_features=1)
+                if cycle.features_attempted:
+                    logger.info(
+                        "GenreBuildAgent: attempted=%d built=%d failed=%d",
+                        cycle.features_attempted,
+                        cycle.features_built,
+                        cycle.features_failed,
+                    )
+                else:
+                    logger.debug("GenreBuildAgent: queue empty this cycle")
+            except Exception as exc:
+                logger.error("GenreBuildAgent heartbeat error: %s", exc)
+
         # Log coordinator status
         if self._coordinator is not None:
             try:
