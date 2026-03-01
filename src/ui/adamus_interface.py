@@ -226,6 +226,67 @@ def cmd_rollback(_args) -> None:
     print(_git("git status --short"))
 
 
+# ── Interactive REPL (used by main.py --cli) ──────────────────────────────────
+
+class AdamusInterface:
+    """
+    Async interactive CLI — lets Augustus chat with Adamus from the terminal.
+
+    Used when running: python -m src.main --cli
+    """
+
+    BANNER = f"""
+{_b('ADAMUS')} — AI CTO  {_c('(CLI mode)')}
+Type a task or question. Commands: /status /queue /quit
+"""
+
+    def __init__(self, coordinator):
+        self.coordinator = coordinator
+        self._loop_ref = None  # set by caller if autonomous loop is running
+
+    async def run(self) -> None:
+        """Run the interactive REPL until the user quits."""
+        print(self.BANNER)
+        while True:
+            try:
+                raw = await asyncio.get_event_loop().run_in_executor(
+                    None, lambda: input(_b("you> ")).strip()
+                )
+            except (EOFError, KeyboardInterrupt):
+                print("\nBye.")
+                break
+
+            if not raw:
+                continue
+
+            if raw.lower() in ("/quit", "/exit", "quit", "exit"):
+                print("Shutting down.")
+                break
+
+            if raw.lower() == "/status":
+                cmd_status(None)
+                continue
+
+            if raw.lower() == "/queue":
+                if self._loop_ref:
+                    m = self._loop_ref.get_metrics()
+                    print(f"  queue={m['queue_size']}  state={m['state']}  processed={m['tasks_processed']}")
+                else:
+                    print("  Autonomous loop not running.")
+                continue
+
+            # Send to coordinator
+            print(_c("adamus> "), end="", flush=True)
+            try:
+                result = await self.coordinator.execute_task(raw)
+                print(result.result)
+            except Exception as e:
+                print(_r(f"Error: {e}"))
+
+
+import asyncio  # noqa: E402 (needed for AdamusInterface.run)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
