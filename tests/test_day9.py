@@ -13,6 +13,7 @@ Covers:
 - AutonomousLoop: wired with _self_build_agent and _genre_build_agent attributes
 """
 
+import json
 import pytest
 from unittest.mock import MagicMock, patch
 from pathlib import Path
