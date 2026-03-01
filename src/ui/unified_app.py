@@ -346,6 +346,85 @@ def create_app() -> Flask:
             return jsonify({"error": err}), 404
         return jsonify({"name": filename, "content": text})
 
+    # ── Self-build API ────────────────────────────────────────────────────────
+
+    @app.route("/api/self-build", methods=["GET"])
+    def api_self_build_status():
+        """Return SelfBuildAgent status (gap count, failure history size)."""
+        try:
+            from src.autonomous.self_build_agent import SelfBuildAgent
+            agent = SelfBuildAgent()
+            status = agent.get_status()
+            gaps = agent._detect_gaps()
+            return jsonify({
+                "ok": True,
+                "pending_gaps": len(gaps),
+                "gaps": [g["name"] for g in gaps],
+                **status,
+            })
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.route("/api/self-build", methods=["POST"])
+    def api_self_build_trigger():
+        """Trigger one SelfBuildAgent cycle immediately."""
+        try:
+            from src.autonomous.self_build_agent import SelfBuildAgent
+            agent = SelfBuildAgent()
+            data = request.get_json(force=True) or {}
+            max_caps = int(data.get("max_capabilities", 2))
+            result = agent.run_cycle(max_capabilities=max_caps)
+            return jsonify({
+                "ok": True,
+                "attempted": result.capabilities_attempted,
+                "built": result.capabilities_built,
+                "failed": result.capabilities_failed,
+                "details": result.details,
+            })
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    # ── Genre-build API ───────────────────────────────────────────────────────
+
+    @app.route("/api/genre-build", methods=["GET"])
+    def api_genre_build_status():
+        """Return GenreBuildAgent queue status."""
+        try:
+            from src.autonomous.genre_build_agent import GenreBuildAgent
+            agent = GenreBuildAgent()
+            return jsonify({"ok": True, **agent.get_queue_status()})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
+    @app.route("/api/genre-build", methods=["POST"])
+    def api_genre_build_trigger():
+        """Enqueue a Genre feature and/or trigger a build cycle."""
+        try:
+            from src.autonomous.genre_build_agent import GenreBuildAgent
+            agent = GenreBuildAgent()
+            data = request.get_json(force=True) or {}
+            # Optional: enqueue a feature first
+            if data.get("name") and data.get("description"):
+                agent.enqueue_feature(
+                    name=data["name"],
+                    description=data["description"],
+                    priority=int(data.get("priority", 5)),
+                    feature_type=data.get("feature_type", "backend"),
+                )
+            # Then run a cycle
+            max_features = int(data.get("max_features", 1))
+            result = agent.run_cycle(max_features=max_features)
+            return jsonify({
+                "ok": True,
+                "attempted": result.features_attempted,
+                "built": result.features_built,
+                "failed": result.features_failed,
+                "details": result.details,
+                "queue": agent.get_queue_status(),
+            })
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
+
     return app
 
 
