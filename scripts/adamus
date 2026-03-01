@@ -44,6 +44,7 @@ try:
     print(f'  Git: {r.stdout.strip()}')
 except: pass
 "   ;;
+    stop)       _kill_port 8888; echo "Adamus UI stopped." ;;
     test)       cd "$ADAMUS_DIR" && pytest tests/ -v --tb=short ;;
     logs)       tail -f "$ADAMUS_DIR/logs/adamus.log" 2>/dev/null || echo "No logs yet" ;;
     loop-logs)  tail -f "$HOME/.adamus/loop.log" 2>/dev/null || echo "No loop logs yet" ;;
