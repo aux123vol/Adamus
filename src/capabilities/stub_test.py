@@ -1,7 +1,7 @@
 """
 stub_test: A stub capability for testing
 
-AUTO-GENERATED STUB — 2026-03-01T15:32:03.913430
+AUTO-GENERATED STUB — 2026-03-01T15:32:04.613198
 Replace this implementation with a real one.
 """
 
