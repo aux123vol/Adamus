@@ -15,10 +15,10 @@ cd "$ADAMUS_DIR"
 _kill_port() {
     local port="${1:-8888}"
     local pid
-    pid=$(ss -tlnp 2>/dev/null | awk -v p=":$port " '$0~p{match($0,/pid=([0-9]+)/,a); print a[1]}')
+    pid=$(fuser "${port}/tcp" 2>/dev/null)
     if [ -n "$pid" ]; then
         echo "Stopping stale Adamus process (pid $pid) on port $port..."
-        kill "$pid" 2>/dev/null
+        kill $pid 2>/dev/null
         sleep 1
     fi
 }
