@@ -126,6 +126,8 @@ class AutonomousLoop:
         self._coordinator = coordinator
         self._self_improvement: Optional[Any] = None
         self._self_builder = None
+        self._self_build_agent = None   # Day 9: context-aware self-improvement
+        self._genre_build_agent = None  # Day 9: Genre feature builder
 
         self._load_queue()
         logger.info("AutonomousLoop created")
