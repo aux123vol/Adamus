@@ -1,0 +1,5 @@
+anthropic>=0.20.0
+python-dotenv>=1.0.0
+flask>=3.0.0
+sqlite-utils>=3.35
+pytest>=8.0.0
